@@ -1,0 +1,1735 @@
+---
+title: "Time Series"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-05-23"
+---
+
+```{r }
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Basic statistics
+
+
+```{r }
+library(faraway)
+head(coagulation)
+
+plot(coag ~ diet, data = coagulation)
+summary(coagulation)
+```
+
+
+
+```{r }
+data(co2)
+head(co2)
+
+plot(co2)
+
+co2.lm <- lm(co2 ~time(co2))
+co2.lm
+
+plot(co2)
+abline(co2.lm)
+
+hist(co2.lm$residuals)
+qqnorm(co2.lm$residuals)
+qqline(co2.lm$residuals)
+```
+No systematic departures from normality
+
+
+
+```{r}
+plot(co2.lm$residuals ~ time(co2))
+
+plot(co2.lm$residuals ~ time(co2),
+     xlim = c(1960, 1963), main = "Zoomed residuals")
+```
+important to  assess the normality of residuals
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+
+help(sleep)
+
+head(sleep)
+
+plot(extra ~group, data = sleep,
+     main = "Extra Sleep in Gossett Data by Group")
+attach(sleep)
+extra.1 <- extra[group == 1]
+extra.2 <- extra[group == 2]
+
+
+t.test(extra.1, extra.2, paired = "TRUE", alternative = "two.sided")
+```
+
+
+# ACF = > Auto Correlation Function
+
+```{r}
+help(trees)
+pairs(trees, pch = 21, bg = c("red"))
+
+```
+```{r}
+m=lm(taste~H2S, data=cheddar)
+summary(m)
+sum(residuals(m))
+sum(fitted(m))
+sum(cheddar$taste)
+
+```
+
+
+# INTRODUCTION TO TIME SERIES
+
+```{r}
+require(astsa)
+help(astsa)
+help(jj)
+
+plot(jj, type = "o", main = "Jonson&Johnson quarterly earnings per share", 
+     ylab= "Earnings", xlab = "Years")
+
+```
+
+By just looking at this time plot, I would say there is some kind of trend throughout the years, so definitely there is an increase throughout the years. I can see the trend, but I can also see fluctuations, the seasonal variations on that trend. So there is a seasonal effect on this time series
+
+At the beginning the variation is not that much, But the leg room I have a higher variations. We can decide if we have a transitional affect or if we have a different variation of different parts of the time series. It actually violates so-called stationary principle (statistical properties of time series do not change over time)
+
+
+
+```{r}
+help(flu)
+plot(flu, main = "Monthly Pneumonia and Influenza Deaths in US", 
+     ylab= " Number of deaths per 10,000 people", xlab = "Months")
+```
+
+
+
+In this time plot, we see that there is some kind of seasonality going on. There is a peak every after year or so. That kind of shows that there is some kind of seasonality going on this data which is definitely not a stationary time series
+
+Seasonality is typically not associated with stationary data because the presence of seasonality indicates systematic changes in the data at regular intervals, violating the assumption of constant statistical properties.
+
+But if we look at the overall trend, there might be a trend that overall numbers are going down which might hard to see
+
+
+```{r}
+
+help(star)
+plot(star, main = "The magnitude of sar taken at midnight for 600 consecutive days", ylab = "Magnitude", xlab= "Days")
+```
+
+My first impression is time plot shows there is a seasonality is going on.
+
+
+
+*Stationary*
+
+- No systematic change in the mean (no trend)
+- No systematic change in the variation
+- No periodic fluctuations
+- Properties of one sections of a data are much like the properties of the other sections of the data
+- If we have non-stationary time series, we will do same transformations to get stationary time series
+
+
+# Autocovariance Function 
+
+- Autocovariance Coefficient is not autocorrelation coeefificents
+
+```{r}
+purely_random_process <- ts(rnorm(100))
+
+purely_random_process
+
+(acf(purely_random_process, type = "covariance"))
+```
+- They provide insight into how strongly each point in the series is linearly related to another point a certain number of steps away.
+- Positive Coefficients: Indicate that values at the given lag are positively correlated.
+- Negative Coefficients: Indicate that values at the given lag are negatively correlated.
+- Zero Coefficients: Indicate no linear correlation at the given lag.
+
+
+## Auto Correlation Function (ACF)
+- Correlogram
+
+```{r}
+acf(purely_random_process, main = "Correlogram of a purely random process")
+(acf(purely_random_process, main = "Correlogram of a purely random process"))
+```
+Here, you see, I have R0, which is 1, it always will start 1. 
+
+Then later on, I do not have much correlation between all the different lags. 
+Just because we generated this data as a purely random process, that you do not expect to see the correlation within different lags. 
+
+These dash lines are basically showing the significance level. So this plot tells us that there are not much significant lags in the previous steps. And there are two of them, and maybe these two can be attributed directly to a chas. And I have a correlogram until lag 20. 
+
+*ρ(1) (the autocorrelation at lag 1)(spike at Lag 1)*
+*Spike at Lag 0: This spike will be at 1.0, representing the perfect correlation of the series with itself.*
+
+## Random Walk
+
+```{r}
+x = NULL
+x[1] = 0
+for (i in 2:1000){
+  x[i] = x[i-1] + rnorm(1)
+}
+x
+```
+
+```{r}
+random_walk = ts(x)
+plot(random_walk, main = "A random walk", xlab = "Days", ylab= "", col = "blue", lwd = 2)
+```
+Random walk is not a stationary time series. Normally we cannot define ACF for it since we do ACF for stationary time series.
+
+```{r}
+(acf(random_walk))
+
+```
+As we have seen there is a high correlation between the lag, then there is no stationary.
+
+But if we can take the difference and look at the *difference(removing the trend)*, the difference is going to be stationary. Let's see
+
+```{r}
+diff(random_walk)
+plot(diff(random_walk))
+acf(diff(random_walk))
+```
+It is a white noise, purely random walk.
+
+
+#Moving Average MA(q)
+
+MA(q) , MA(2) is for last 2 days
+
+```{r}
+#Generate noise
+noise = rnorm(10000)
+
+#Introduce a variabe
+ma_2 = NULL
+
+#Loop for generating MA(2) process
+
+for(i in 3:10000){
+  ma_2[i] = noise[i] + 0.7 * noise[i-1] + 0.2 * noise[i-2]
+}
+
+#Shift data to left by 2 units
+moving_average_process = ma_2[3:10000]
+
+# Put the time series on vanilla data
+moving_average_process = ts(moving_average_process)
+
+
+
+plot(moving_average_process, main = "A moving average process of order 2", ylab = "", col = "blue")
+acf(moving_average_process, main = "Corellogram of a moving average process of order 2")
+acf(moving_average_process, type = "partial", main = "PACF of a moving average process of order 2")
+
+```
+ACF process cuts off at lag 2
+
+*A moving average process of order q has an ACF that cuts off after q lags.*
+
+
+
+*Stationarity* 
+
+
+- If you think of a random variable family, let's say a set, a sequence of IID random variables, they might be normally distributed but really they don't have to be. All we care about at the moment is that they're independent, identically distributed with mean of 0 and constant variance.
+
+- Then the mean function, as a function of index t is 0 everywhere, so of course it's constant. If you look at the autocovariance function, gamma of t1 and t2, then we find that that's essentially a delta function, it's 0 when t1 and t2 do not agree. In other words, when you have two different random variables and as sigma squared, it reduces the variance when the subscripts agree. So, almost trivially you could say white noise is stationary.
+
+
+*Stochastic processes are really just random processes*
+
+- A discrete stochastic process is a family of random variables structured as a sequence (finite or infinite) and has a discrete time index.
+
+- Discrete stochastic processes may model, for instance, the recorded daily high temperatures in Melbourne, Australia. A continuous stochastic process is also a family of random variables, but is indexed by a continuous variable and denoted as 𝑋(𝑡). A commonly encountered continuous process is the Weiner Process, having nothing to do with hot dogs, but instead describing a particle’s position as a function of time as it floats on the surface of a liquid (Brownian Motion). Another commonly encountered continuous process is the Poisson Process. 
+
+- A stochastic process involves a family of random variables To fully characterize this process, it's not sufficient to only understand the marginal distributions of each individual random variable (i.e., the probability distribution of each variable at each time point independently). We also need to understand how these variables are related to each other across different time points. This is where the joint distribution comes into play.
+
+
+*White noise is stationary*
+- In the context of white noise, the random variables are independent of each other. Independence means that the occurrence or value of one random variable does not affect the occurrence or value of another.
+
+- When we talk about covariance between different time points in a white noise process, we're essentially looking at the relationship between two different observations taken at those time points. Since each observation is generated independently of the others, there's no systematic relationship or dependency between them.
+
+Here's why the covariance between different time points is zero in white noise:
+
+Definition of Covariance: Covariance measures the degree to which two random variables vary together. Mathematically, it's the expected value of the product of the deviations of the variables from their respective means.
+
+Independence Implies Zero Covariance: When two random variables are independent, changes or values in one variable do not influence changes or values in the other. Consequently, the product of their deviations from their means will, on average, be zero. Therefore, the covariance between independent random variables is zero.
+
+In white noise, each observation is an independent random variable. Therefore, when comparing observations at different time points, there's no systematic relationship between them, leading to a covariance of zero. This property contributes to the stationary nature of white noise, where statistical properties like covariance remain constant over time
+
+
+
+
+*Random walks is not stationary*
+
+-  We build a walk in t steps as your first position will be just where you got to off of your first variable.
+
+- Your second position is where you get to by adding your first position and now taking another step of size to be determined by Z2. And we continue in that way, moving to the left or the right in random amounts.
+
+- Your position at any time, t then, is just the sum, the aggregate of all the individual steps you took. A journey is really just the sum of its individual steps.
+
+- In other words if mu is not zero, the expected value is growing with time.
+
+- But here, we started with independent identically distributed random variable. So, the variance operator moves to the summation, no problem.
+
+- Variance grows with time. Variance is increasingly linearly with time.
+
+- So, you are seeing that the variance is not constant. If the variance isn't constant, your process is not stationary.
+
+
+*Moving Average Process is stationary*
+
+- Start with iid variables.
+
+- MA(q) : q tells us how far back to look along the white noise sequence for our weighted average
+
+```{r}
+
+# Run the code a few times to develop intuition into MA processes.Just try to internalize the differences between white noise (first plot) and third and fifth order moving average processes.
+
+
+plot( arima.sim(n=150, list(order=c(0,0,0) )  ), main="WN" );
+plot( arima.sim(n=150, list(ma=c(0.33, 0.33, 0.33)      )  ) , main="MA3");
+plot( arima.sim(n=150, list(ma=c(0.2, 0.2, 0.2, 0.2, 0.2) )  ), main="MA5" );
+
+# White noise should be the least smooth of the three plots, followed by MA3. Our MA5 should be the smoothest 
+
+```
+*Note*
+*Smoothing white noise with a Moving Average (MA) process is a common technique in time series analysis for various reasons:*
+
+Noise Reduction: White noise often contains high-frequency fluctuations that may obscure underlying trends or patterns in the data. Smoothing with a moving average can help reduce this noise, making it easier to identify and analyze the underlying signal.
+
+Identifying Trends: By smoothing out short-term fluctuations, moving averages can reveal longer-term trends or patterns in the data. This can be particularly useful for making forecasts or understanding the overall direction of the series.
+
+Visual Clarity: Smoothing with a moving average can result in a visually smoother and more interpretable time series plot. This can make it easier for analysts and stakeholders to understand the data and any patterns it may contain.
+
+Modeling Purposes: In some cases, applying a moving average to white noise can help in fitting certain types of models. For example, if the underlying process generating the data exhibits some form of autocorrelation, smoothing with a moving average can help capture this autocorrelation structure and improve model performance.
+
+Forecasting: Smoothing with a moving average can be useful for generating forecasts by reducing noise and identifying trends. This can provide more accurate predictions of future values compared to using the raw white noise series.
+
+However, it's important to note that smoothing with a moving average involves a trade-off between noise reduction and preserving important features of the data. The choice of the window size for the moving average can also impact the results, as smaller window sizes provide more smoothing but may remove important short-term variations, while larger window sizes may preserve more detail but provide less smoothing. 
+
+
+
+-----
+
+## Strict Stationarity
+
+- It essentially says that the joint distribution doesn’t really depend upon where you are looking along the stochastic process. 
+
+- If the joint distribution of one point of time is the same as the another point of a time, we can say strictly stationary.
+
+- The random variables are identically distributed, though not necessarily independent. 
+
+- Mean function and variance function are constant.
+
+- The joint distribution depends only on the lag spacing and not where you are on the random process.
+
+
+
+
+
+## Weak Statinoarity
+
+- If the mean function  is constat, depends not on where you look along the process but rather 
+
+- The variance function is constant.
+
+- We also say weakly stationary if the autocovariance function just depends upon lag spacing.
+
+- Moving AVerage is weakly stationary
+
+*The covariance of two random variables is going to look like the expected value of the product minus the product of the expected values.*
+
+------
+
+
+*Convergence* If a sequence has a limit, it means that as approaches infinity, the terms of the sequence get arbitrarily close to some real number.For the limit to exist, the sequence must satisfy the convergence criterion described above. Therefore, the existence of a limit implies that the sequence is convergent.
+
+*Divergence*
+
+
+
+*Stationarity* and *Invertibility* of equations
+
+
+------
+
+
+
+
+
+
+
+
+# Auto Regressive Time Series AR(p)
+
+*Decay* ==*Drop off*
+
+
+
+In an AR process, the current value of the time series is expressed as a linear combination of its previous p values plus a white noise error term.
+
+In an MA process, the current value of the time series is expressed as a linear combination of the current and previous q white noise error terms.
+
+
+
+```{r}
+# AR(1)
+phi1 = 0.1;
+X.ts <- arima.sim(list(ar = c(phi1)), n=1000)
+
+plot(X.ts,main=paste("AR(1) Time Series, phi1=",phi1))
+X.acf = acf(X.ts, main="Autocorrelation of AR(1) Time Series")
+
+
+phi1 = 0.9;
+X.ts <- arima.sim(list(ar = c(phi1)), n=1000)
+
+plot(X.ts,main=paste("AR(1) Time Series, phi1=",phi1))
+X.acf = acf(X.ts, main="Autocorrelation of AR(1) Time Series")
+
+phi1 = -0.3;
+X.ts <- arima.sim(list(ar = c(phi1)), n=1000)
+
+plot(X.ts,main=paste("AR(1) Time Series, phi1=",phi1))
+X.acf = acf(X.ts, main="Autocorrelation of AR(1) Time Series")
+
+phi1 = -0.8;
+X.ts <- arima.sim(list(ar = c(phi1)), n=1000)
+
+plot(X.ts,main=paste("AR(1) Time Series, phi1=",phi1))
+X.acf = acf(X.ts, main="Autocorrelation of AR(1) Time Series")
+```
+Faster decay at phi = 0.1
+
+
+
+```{r}
+# AR(2)
+
+X.ts <- arima.sim(list(ar = c(0.7, 0.2)), n=1000)
+plot(X.ts,main=paste("AR(2) Time Series, phi1= 0,7, phi2= 0.2"))
+X.acf = acf(X.ts, main="Autocorrelation of AR(2) Time Series")
+```
+Correlations are stick aorund at the beginning, decay in slow rate.
+
+
+
+
+```{r}
+# AR(2)
+
+X.ts <- arima.sim(list(ar = c(0.5, -0.4)), n=1000)
+plot(X.ts,main=paste("AR(2) Time Series, phi1= 0.5, phi2= -0.4"))
+X.acf = acf(X.ts, main="Autocorrelation of AR(2) Time Series")
+```
+
+
+
+
+### Partial AutoCorrelation Function (PACF)
+
+
+A moving average process of order q has an ACF that cuts off after q lags. Partial Autocorrelation Function, or PACF will help us to find the order of an AR(p) process
+
+```{r}
+rm(list=ls( all = TRUE ) )
+
+phi.1 = .6; phi.2 = .2; data.ts = arima.sim(n = 500, list(ar = c(phi.1, phi.2)))
+plot(data.ts, main=
+paste("Autoregressive Process with phi1=",phi.1," phi2=",phi.2) )
+acf(data.ts, main="Autocorrelation Function")
+acf(data.ts, type="partial", main="Partial Autocorrelation Function")
+```
+We will observe that, while the actual time series itself changes from simulation to simulation, the ACF and PACF are relatively constant.
+
+
+```{r}
+phi.1 = .9; phi.2 = -.6; phi.3 = .3;
+data.ts = arima.sim(n = 500, list(ar = c(phi.1, phi.2, phi.3)))
+plot(data.ts, main= paste("Autoregressive Process with phi1=",
+phi.1," phi2=",phi.2," phi3=",phi.3) )
+acf(data.ts, main="Autocorrelation Function")
+acf(data.ts, type="partial", main="Partial Autocorrelation Function")
+```
+
+*An autoregressive process of order p, an AR(p), has a PACF that cuts off after p lags.*
+
+
+
+```{r}
+
+# Run the code below for an AR(2) process. Does your PACF have 2 significant spikes?
+
+phi.1 = .9; phi.2 = -.6;
+
+data.ts = arima.sim(n = 500, list(ar = c(phi.1, phi.2)))
+plot(data.ts, 
+main = 
+paste("Autoregressive Process with phi1=", phi.1," phi2=",phi.2 ) ) 
+acf(data.ts)
+acf(data.ts, type="partial")
+```
+
+Yes
+
+- PACF helps in understanding the dynamics of the time series by highlighting the direct influence of past values on the current value, which is crucial for interpreting the behavior of the time series.
+
+- The PACF helps to reveal the direct relationship between observations in a time series, which is not possible with the ACF alone. This is particularly useful when the series has multiple significant lags that may confound the analysis if only ACF is used.
+
+- The PACF, on the other hand, measures the correlation between a time series and its lagged values *after removing the effects of any intermediate lags*. This gives a clearer picture of the direct influence of a lagged value on the current value.
+
+- Imagine you are analyzing a financial time series, such as daily stock prices. You suspect that today's stock price is influenced by its own past prices, but you don't know how many past prices (lags) to include in your autoregressive model. By plotting the PACF, you observe that significant partial autocorrelations exist up to lag 3 and then drop to zero. This indicates that an AR(3) model might be appropriate, meaning today's stock price is directly influenced by the prices of the last three days.
+
+- The PACF is crucial because it helps to untangle these direct relationships, providing clearer insight into the underlying structure of the time series. By focusing on the direct correlations, the PACF allows for more accurate model specification, especially in identifying the appropriate order of autoregressive models.
+
+
+-----
+
+*Model Identification:*
+
+*- AR Model:* If the PACF shows significant spikes up to lag p and cuts off, it suggests an AR(p) model.
+*- MA Model:* If the ACF shows significant spikes up to lag q and cuts off, it suggests an MA(q) model.
+*- ARMA/ARIMA* Model: Use both ACF and PACF plots. A mixed pattern suggests an ARMA or ARIMA model, where the ACF and PACF together help determine the appropriate orders of the AR and MA components.
+
+-----
+
+- Plot the Time Series: Observe trends and seasonality.
+ACF Plot: Detect any seasonal patterns and overall decay. If you see peaks at lags 12, 24, etc., this indicates yearly seasonality.
+PACF Plot: Identify significant lags that directly affect the current value. If significant lags are at 1, 2, and 3, an AR(3) model might be appropriate.
+
+
+```{r}
+# Let's look at the water level in Lake Huron (one of the "Great Lakes"). The following code produces the usual three plots. If you believe an autoregressive model is appropriate, what do you think it's order should be?
+plot(LakeHuron)
+acf(LakeHuron)
+acf(LakeHuron, type="partial")
+```
+Answer is 2. We look at the PACF and see two spikes "above noise", indicating a second order model.
+
+
+
+### Recruitment Data 
+
+```{r}
+library(astsa)
+my.data=rec
+
+# Plot rec 
+plot(rec, main='Recruitment time series', col='blue', lwd=3)
+```
+
+
+
+
+```{r}
+# subtract mean to get a time series with mean zero
+ar.process=my.data-mean(my.data)
+
+# ACF and PACF of the process
+
+acf(ar.process, main='Recruitment', col='red', lwd=3)
+pacf(ar.process, main='Recruitment', col='green', lwd=3)
+```
+
+-----
+
+*Hint* Subtracting the mean from a time series to center it around zero can be an important step in time series analysis, even though the resulting autocorrelation function (ACF) and partial autocorrelation function (PACF) plots might look visually similar to those of the original data. Here’s why this preprocessing step is significant: Many time series models, including ARIMA and other autoregressive models, assume that the series is stationary. A stationary time series has a constant mean and variance over time. By subtracting the mean, you help ensure the mean is constant (specifically, zero), which is a key requirement for stationarity.
+
+------
+
+
+if I look at ACF and PACF, auto-correlation function, and partial auto-correlation function. So if you look at the altered correlation function, there's some kind of decaying, but also some cyclic behavior, right? And but when you look at the partial auto-correlation function, we see maybe two significant lags, lag two and then maybe nothing significant afterwards. So that kind of gives us an idea, that maybe AR(2) process might be suitable for the recruitment data set.
+
+We get the ACF, this is the ACF that we showed in the presentation, this is the PACF, and when we look at it on the right hand side, we see that, all right, there's some cyclic behavior, in the ACF, but PACF so that maybe AR(2) might be a good fit. So if you say p is equal to 2, this is going to be r order, and then we calculate r, by basically taking the ACFR process, and looking at the AC part of it, and if we obtain our r, let's print our out. 
+
+```{r}
+# order
+p=2
+
+# sample autocorreleation function r
+r=NULL
+r[1:p]=acf(ar.process, plot=F)$acf[2:(p+1)]
+cat('r=',r,'\n')
+```
+
+R values, basically this is r1, and r2, okay. 
+
+
+
+
+
+
+
+### Johnson&Johnson Data 
+```{r}
+# Time plot for Johnson&Johnson
+plot(JohnsonJohnson, main='Johnson&Johnosn earnings per share', col='blue', lwd=3)
+```
+
+As you can see, there's definitely a trend going up, there's kind of a trend, the mean level is going up. And as it goes up, from 1960 til 1980, the variations also increases. As you can see, there's a difference in variations, systematic difference in variation. There's systematic difference in trend. Which means this dataset is definitely not as stationary dataset, in other words we cannot just fit some stationary AR model to this dataset, what we need to do in this case is some have transform the dataset. 
+
+So let me give you the one famous transformation, it's called log return of the time series. That difference is usually stationary times series. Spatially and financial times series. In r we can obtain this difference, by basically taking the log of the dataset first. And then taking their differences. 
+
+```{r}
+# log-return of Johnson&Johnson
+jj.log.return=diff(log(JohnsonJohnson))
+jj.log.return.mean.zero=jj.log.return-mean(jj.log.return)
+```
+
+
+
+```{r}
+plot(jj.log.return.mean.zero, main='Log-return (mean zero) of Johnson&Johnosn earnings per share')
+acf(jj.log.return.mean.zero, main='ACF')
+pacf(jj.log.return.mean.zero, main='PACF')
+```
+
+If you look at the ACF and PACF, ACF is alternating and decaying and then PACF shows significant log at 4 there zero log, I'm sorry, Zero log 1, log 2, log 3, log 4. And this is after that log, there's no significant logs available. So this give an idea that maybe we can try to attempt to fit the Johnson&Johnson using AR(4) model
+
+
+```{r}
+p = 4
+# sample autocorreleation function r
+r=NULL
+r[1:p]=acf(jj.log.return.mean.zero, plot=F)$acf[2:(p+1)]
+r
+```
+So P is going to be a four, so if you'll look at this next cell which is R is null, so we define R and then via assign ACFs to R, and we print R. And R is going to be the following, since we have p = 4, we have r1, until r1, r2, r3, and r4.
+
+-----
+
+*Autoregressive (AR) Model:*
+*Use When:*
+- The time series data shows a significant correlation with its own past values.
+- The autocorrelation function (ACF) decays gradually and is significant for several lags.
+- The partial autocorrelation function (PACF) shows a sharp cut-off after a few lags, indicating the order of the AR model.
+*Characteristics:*
+- An AR model uses the dependent relationship between an observation and a number of lagged observations (previous values).
+- AR models are useful when past values of the time series contain enough information to predict future values.
+
+
+
+*Moving Average (MA) Model:*
+*Use When:*
+- The time series data shows a short-term dependency on its past error terms.
+- The ACF shows a sharp cut-off after a few lags, indicating the order of the MA model.
+- The PACF decays gradually and is significant for several lags.
+*Characteristics:*
+- An MA model uses the dependency between an observation and a residual error from a moving average model applied to lagged observations.
+- MA models are useful when random shocks or noise have a short-term effect on the time series.
+
+-----
+
+#### AIC
+
+The AIC tries to help you assess the relative quality of several competing models, just like adjusted R-squared in linear regression, by giving credit for models which reduce the error sum of squares and at the same time by building in a penalty for models which bring in too many parameters. We are looking to
+compare the AIC for a variety of candidate models and as long as we can make relative comparisons we are OK. We prefer a model with a lower AIC. 
+
+```{r}
+# First, we generate a 1st order AR model and look at the ACF and the PACF.
+# Which plot tells us the likely order of the AR(p) process?
+rm(list=ls(all=TRUE))
+set.seed(597) # Saint Augustine arrives in England
+data = arima.sim( list(order = c(1,0,0), ar = .3), n = 5000)
+
+par(mfrow=c(1,2))
+acf(data, main="ACF of Time Series Data")
+acf(data, type="partial", main="PACF of Time Series Data")
+```
+Answer PACF
+
+```{r}
+
+# Which order model has the lowest AIC?
+
+# Order 1
+rm(list=ls(all=TRUE))
+set.seed(597) # Saint Augustine arrives in England
+data = arima.sim( list(order = c(1,0,0), ar = .3), n = 5000);
+arima(data, order=c(1,0,0) )
+
+# Order 2
+rm(list=ls(all=TRUE))
+set.seed(597) # Saint Augustine arrives in England
+data = arima.sim( list(order = c(1,0,0), ar = .3), n = 5000);
+arima(data, order=c(2,0,0) )
+
+# Order 3
+rm(list=ls(all=TRUE))
+set.seed(597) # Saint Augustine arrives in England
+data = arima.sim( list(order = c(1,0,0), ar = .3), n = 5000);
+arima(data, order=c(3,0,0) )
+
+
+```
+Answer : 1st order model has lowest AIC. Though the difference is not great.
+
+
+
+
+
+
+
+
+# ARMA (p,q)
+
+ARMA (p,q) process is defined as the following. There are P terms. These P terms are autoregressive terms because XT is regressed on previous P values of the same time series, and also XT depends on previous Q noises and then there is a noise for the current time. 
+
+We have several interesting and important case studies coming our way (tree rings, sunspots, etc.) so we need to be able to estimate the parameters of a process. That is, we’d like to estimate the order of the process, the coefficients of the process, variability, etc. It turns out that many “real world” examples are most efficiently modeled if we build a description with both moving average terms and autoregressive terms. We like efficiency not because we are lazy (or at least not only because we are lazy), but these simpler models provide better estimates and are easier to communicate and understand
+
+```{r}
+rm(list=ls(all=TRUE))
+set.seed(500) # Beginning of Heptarchy: Kent, Essex, Sussex,
+
+# Wessex, East Anglia, Mercia, and Northumbria.
+data = arima.sim( list(order = c(1,0,1), ar =.7, ma=.2), n = 1000000)
+
+plot(data, main="ARMA(1,1) Time Series: phi1=.7, theta1=.2", xlim=c(0,400)) #first terms
+acf(data, main="Autocorrelation of ARMA(1,1), phi1=.7, theta1=.2")
+acf(data, type="partial", main="Partial Autocorrelation of ARMA(1,1), phi1=.7, theta1=.2")
+
+```
+
+Let’s look at some data about the number of major scientific discoveries in a given year.The stripchart() command is a great way to see a “dot plot” when you are feeling casual, or have a smaller data set
+
+```{r}
+plot(discoveries,
+main = "Time Series of Number of Major Scientific Discoveries in a Year")
+stripchart(discoveries, method = "stack", offset=.5, at=.15,pch=19,
+main="Number of Discoveries Dotplot",
+xlab="Number of Major Scientific Discoveries in a Year",
+ylab="Frequency")
+```
+We should also look at our autocorrelation and partial autocorrelation plots. We see the time plot has no obvious trends or seasonality, so we can try fitting an ARMA model.
+
+```{r}
+acf(discoveries, main="ACF of Number of Major Scientific Discoveries in a Year")
+acf(discoveries, type="partial", main="PACF of Number of Major Scientific Discoveries
+in a Year")
+
+```
+There appear to be two, maybe three spikes above noise over here on the ACF.That doesn't look like a very abrupt cutting off to me, seems more like tailing off. But again, there's some noise in the system. It's a little bit hard to tell.
+
+The PACF seems to tail off, so hard to say here. I am seeing one, two maybe if you're generous, spikes above noise on the PACF. And it looks like we have three spikes above noise here. So it's probably a good idea in a case like this to try several competing models. We'll put in different orders of p and q. 
+
+I’m looking at three spikes above noise in the ACF and one or two (feeling generous I’ll say twoish) on the PACF. We can explore several ARMA models and, in particular, assess the quality of the model with the AIC. 
+
+
+We have ways to assess relative quality of models, the AIC for instance. And we'll do that for a reasonable number of model types or candidate models. So as we explore our ARMA models, let's let q go from 0 to 3, and p go from 0 to 3 and see what we get. We'll assess quality of the different models.We haven’t talked about differencing (for stationarity) yet, but we’ll explicitly tell the routine not to do any differencing (d=0). This means we will specify the order of the process as (p,d,q)=(p,0,q).
+
+AIC( arima( discoveries, order=c(0,0,1) ) ) #AIC = [1] 445.5895
+AIC( arima( discoveries, order=c(0,0,2) ) ) #AIC = [1] 444.6742
+AIC( arima( discoveries, order=c(0,0,3) ) ) #AIC = [1] 441.323
+AIC( arima( discoveries, order=c(1,0,0) ) ) #AIC = [1] 443.3792
+*AIC( arima( discoveries, order=c(1,0,1) ) ) #AIC = [1] 440.198*
+AIC( arima( discoveries, order=c(1,0,2) ) ) #AIC = [1] 442.0428
+AIC( arima( discoveries, order=c(1,0,3) ) ) #AIC = [1] 442.6747
+AIC( arima( discoveries, order=c(2,0,0) ) ) #AIC = [1] 441.6155
+AIC( arima( discoveries, order=c(2,0,1) ) ) #AIC = [1] 442.0722
+AIC( arima( discoveries, order=c(2,0,2) ) ) #AIC = [1] 443.7021
+AIC( arima( discoveries, order=c(2,0,3) ) ) #AIC = [1] 441.6594
+AIC( arima( discoveries, order=c(3,0,0) ) ) #AIC = [1] 441.5658
+AIC( arima( discoveries, order=c(3,0,1) ) ) #AIC = [1] 443.5655
+*AIC( arima( discoveries, order=c(3,0,2) ) ) #AIC = [1] 439.9263*
+AIC( arima( discoveries, order=c(3,0,3) ) ) #AIC = [1] 441.2941
+
+
+*There seem to be two strong contenders. Absent a theory, I prefer the (p,d,q)=(1,0,1) over the (p,d,q)=(3,0,2) on the basis of parsimony, but the AIC marginally likes the (p,d,q)=(3,0,2).*
+
+```{r}
+arima( discoveries, order=c(1,0,1) )
+```
+
+*Model Specification:*
+- ARIMA(1, 0, 1): This indicates an Autoregressive Moving Average model with one autoregressive term (AR) and one moving average term (MA). The middle term is zero, meaning no differencing is applied to the time series.
+
+- Coefficients:
+
+-- ar1 (0.8353): This is the coefficient of the first-order autoregressive term. It suggests that the current value of the time series is positively correlated with its previous value. The magnitude indicates the strength of this correlation.
+
+-- s.e. (0.1379): This is the standard error of the AR(1) coefficient, providing a measure of the estimate's precision.
+
+-- ma1 (-0.6243): This is the coefficient of the first-order moving average term. It suggests that the current value of the time series is negatively correlated with the previous forecast errors. The magnitude indicates the strength of this correlation.
+
+-- s.e. (0.1948): This is the standard error of the MA(1) coefficient.
+
+-- intercept (3.0208): This is the estimated mean of the time series, assuming a constant mean model.
+--s.e. (0.4728): This is the standard error of the intercept term.
+
+*Model Diagnostics:*
+- sigma^2 estimated as 4.401: This is the estimated variance of the residuals (errors) from the ARIMA model. It gives an idea of the variability in the time series that the model does not explain.
+
+- log likelihood = -216.1: The log-likelihood value measures the goodness of fit of the model. Higher (less negative) values indicate a better fit.
+
+- aic = 440.2: The Akaike Information Criterion (AIC) is a measure used for model selection. It balances the model's fit and complexity. Lower AIC values indicate a better model. In this case, the AIC of 440.2 suggests that this model is one of the better fits compared to other models tested.
+ 
+ 
+- The ARIMA(1, 0, 1) model with the given coefficients indicates that the discoveries time series is influenced by its own previous value (with a positive correlation) and the previous error term (with a negative correlation).
+
+#### Automatic Routines
+
+```{r}
+library(forecast)
+auto.arima(discoveries, d=0, approximation=FALSE)
+auto.arima(discoveries, d=0, approximation=TRUE)
+
+auto.arima(discoveries, d=0, ic="bic", approximation=FALSE)
+auto.arima(discoveries, d=0, ic="aic", approximation=FALSE)
+auto.arima(discoveries, d=0, ic="aic", approximation=TRUE)
+```
+
+```{r}
+data = arima.sim( n=1E4, list(ar=.5, ma=.2) )
+auto.arima(data)
+```
+-------
+
+*Summary*
+- For AR models, the ACF decays gradually while the PACF cuts off after lag p.
+- For MA models, the ACF cuts off after lag q while the PACF decays gradually.
+- For ARMA models, both ACF and PACF typically decay gradually, with the exact pattern influenced by the specific AR and MA coefficients.
+
+- In summary, *the coefficients* in the AR and MA terms determine how quickly the correlations decay in the ACF and PACF plots. Large coefficients imply stronger dependencies on past values or past error terms, leading to slower decay rates in these plots.
+
+
+------
+
+
+
+
+
+
+
+# Autoregressive, Integrated, Moving Average Models ARIMA(p,d,q)
+
+
+If the variance is different in one part of the time series from the other part of that time series which means it's not stationary. We have to use some kind of transformation to stabilize the variance and the common transformations are lower at them. And then, sometimes, we will need the differencing. So if you take the logarithm and then differencing, that whole thing is called, in financial time series they call it a log-return of the time series. 
+
+We're going to look at ACF, autocorrelation function which might suggest for order of q  of moving average process.
+
+We're going to look at PACF of the difference or transformed time series. And that might suggest for order p of autoregressive terms. 
+
+Then once we have a lot of models that we can play with then we will somehow have to choose one of those models. Right. And then what are going to be our criteria, we're gonna have more than one criteria. I know that you have seen already Akaike Information Criteria. So AIC is one of the things we're going to look at. We are trying to hope to get the least AIC.
+
+
+
+
+We have some time series whose Q-statistic at lag=4 is calculated, and corresponding p-value is found: p-value=0.34.We do not have enough evidence to reject the null hypothesis that there is no autocorrelation until lag 4
+
+We have some time series whose Q-statistic at lag=10 is calculated, and corresponding p-value is found: p-value= 0.00034.There is a significant autocorrelation at at least one lag until lag 10. We do have sufficient evidence to reject that all autocorrelation coefficients until lag 10 is zero.
+
+
+#### Daily births in California in 1959
+
+```{r}
+
+library(astsa)
+
+# read data to R variable
+birth.data<-read.csv("daily-total-female-births-in-cal.csv")
+head(birth.data)
+
+# pull out number of births column
+number_of_births<-birth.data$Daily.total.female.births.in.California..1959
+
+# use date format for dates
+birth.data$Date <- as.Date(birth.data$Date, "%m/%d/%Y")
+
+plot.ts(number_of_births,main='Daily total female births in california, 1959', ylab = 'Number of births')
+```
+As you can see, this is definitely not a stationary time series. There's some kind of trend going on. So maybe we should need to remove the trend later on, but lets first check Q-statistic. In other words, is there a correlation or after correlation among different lags of this time series? 
+
+we're going to use box test as we said. Box-test, this is the name of the dataset and this is the lag that we said we're going to use the logarithm of the length of that time series. 
+
+```{r}
+# Test for correlation
+Box.test(number_of_births, lag = log(length(number_of_births)))
+```
+
+
+-----
+
+*Null and Alternative Hypotheses*
+
+- Null Hypothesis (H0): The residuals are independently distributed (i.e., there is no significant autocorrelation in the residuals).
+- Alternative Hypothesis (H1): The residuals are not independently distributed (i.e., there is significant autocorrelation in the residuals).
+
+Given the very small p-value, we reject the null hypothesis at the 0.05 significance level. This indicates that there is significant autocorrelation present in the residuals of the "number_of_births" data.
+
+
+
+*Implications*
+Model Adequacy: The presence of significant autocorrelation in the residuals suggests that the current model might not be adequately capturing all the patterns in the data.
+Model Improvement: To improve the model, consider including additional terms or using a different model that better accounts for the autocorrelation structure in the data. This could involve adding more lags, using seasonal components, or switching to a different model type (e.g., from ARIMA to SARIMA).
+
+------
+
+
+p-value is actually very, very small, which is smaller than any significance level you would choose like 0.005 or 0.001. So there is definitely after correlations, so we can fit somewhere the model, ARIMA model may be here, some linear model, and try to pull the linear part of it. And then we're going to look again to its residuals, maybe there's other correlation there, maybe there's not. So we hope that we will get some white noise there.
+
+```{r}
+# Plot the differenced data
+plot.ts(diff(number_of_births), main='Differenced series', ylab = '')
+```
+This is our difference time series. This is our date and we get some kind of maybe a stationary time series. There is a little bit peak on September 2nd if you look at the time series there's September 2nd which is exactly nine months after December 31st. We can attribute this to randomness, so we can say that, okay, maybe we can ignore this outlier. Then we basically have some stationery time series. And let's look at the auto correlation theories 
+
+
+The auto correlation here we're going to use, again, box test for the difference of the time series. 
+
+```{r}
+# Test for correlation in the differenced data
+Box.test(diff(number_of_births), lag = log(length(diff(number_of_births))))
+```
+We obtain, again, very, very small p-value, so there's definitely some autocorrelations. Let's look at ACF, I told you before that ACF will also suggest that there might be some autocorrelations.
+
+```{r}
+# acf and pacf of the differenced data
+
+acf(diff(number_of_births), main='ACF of differenced data', 50)
+pacf(diff(number_of_births), main='PACF of differenced data', 50)
+```
+This is the ACF of the difference data. If I look at the ACF, we see that there's a significant lag at lag 1. And then there's one peak at lag 21 maybe. So maybe we can ignore this and we can refer to this randomness. Maybe this is a random peak. And if you can ignore that, then maybe we have two significant peaks. This is lag zero, which is always one, and we have some lag one here. Autocorrelation functions suggest order for the moving average process. If I look at the PACF or partial auto-correlation function. We obtain the following. We see a lot of significant peaks if even if we ignore lag 21. We can see that there is a lot of significant lags until lag 7. Okay, so we have various competing model we're going to have to try. 
+
+
+
+```{r}
+# Fit various ARIMA models
+model1<-arima(number_of_births, order=c(0,1,1))
+SSE1<-sum(model1$residuals^2)
+model1.test<-Box.test(model1$residuals, lag = log(length(model1$residuals)))
+
+model2<-arima(number_of_births, order=c(0,1,2))
+SSE2<-sum(model2$residuals^2)
+model2.test<-Box.test(model2$residuals, lag = log(length(model2$residuals)))
+
+model3<-arima(number_of_births, order=c(7,1,1))
+SSE3<-sum(model3$residuals^2)
+model3.test<-Box.test(model3$residuals, lag = log(length(model3$residuals)))
+
+model4<-arima(number_of_births, order=c(7,1,2))
+SSE4<-sum(model4$residuals^2)
+model4.test<-Box.test(model4$residuals, lag = log(length(model4$residuals)))
+
+
+df<-data.frame(row.names=c('AIC', 'SSE', 'p-value'), c(model1$aic, SSE1, model1.test$p.value), 
+               c(model2$aic, SSE2, model2.test$p.value), c(model3$aic, SSE3, model3.test$p.value),
+               c(model4$aic, SSE4, model4.test$p.value))
+colnames(df)<-c('Arima(0,1,1)','Arima(0,1,2)', 'Arima(7,1,1)', 'Arima(7,1,2)')
+
+
+
+format(df, scientific=FALSE)
+```
+
+As you can see from all of the p-values, none of the residuals have significant auto correlation, so we can assume that there is no autocorrelation. We cannot reject the null hypothesis, there's no autocorrelation in the residuals. 
+
+Let's look at the AIC values. AIC values, as you can see, is 2462, 2459, 2464, 2466. The minimum value is 2459. So if you are going with the minimum AIC value, our model is going to be basically Arima(0,1,2). 
+
+If we are looking at the smallest SSE values, sum of the squared errors, it seems like the smallest error is actually 17,574, which will tell us Arima(7,1,2) model. 
+
+But if you have Arima(7,1,2) model, 7 plus 1 plus 2, you have 10 parameters in the model. 
+
+So if you are using, trying to get the simplest model as we can, so in this example, you're going to use AIC as our criterion. And we're going to go with Arima(0,1, 2) model.
+
+
+
+```{r}
+# Fit a SARIMA model
+
+sarima(number_of_births, 0,1,2,0,0,0)
+```
+
+Sarima, you have number_of_births, and we have this 0, 1, 2 basically this is p, d, q, and for now lets just ignore this last three perimeters 0, 0, 0. If I want this command, it gives me a lot of things. For example, it gives me my call and my coefficients. And it actually gives me the coefficients here with their standard errors. So ma1 coefficient is negative 0.85, 11 and this is ma2 coefficient, this is our constants. If you look at this p-values it means that ma1 and ma2 coefficients are significant at the level of 0.05 maybe the constant is not significant but we can keep this our model.
+
+
+#### BJsales Dataset
+
+
+```{r}
+# Plot time series 'BJsales'
+plot.ts(BJsales)
+```
+There are ups and downs with a general upward trend.Time series is not stationary.
+
+
+```{r}
+# Plot the differenced data 
+plot(diff(BJsales))
+```
+
+It does not seem to be stationary since there are still upward or downward trends in different parts of the time plot.
+
+
+
+```{r}
+# To get rid of a still remaining trend, we apply one more differencing. Plot the twice differenced time series 
+plot(diff(diff(BJsales)))
+```
+
+It seems that variance is smaller towards the end of the plot. One may say that difference in the change of the variance is not high, and thus can be ignored. 
+
+There is no systematic change in mean.
+
+Mean level seems to be constant, around 0.
+
+
+
+
+```{r}
+# Find the PACF of diff(diff(BJsales)). Which lags are significant?
+
+pacf(diff(diff(BJsales)))
+```
+Lag 1, Lag 2, Lag 3, Lag 10, Lag 19. One might say that Lag 19 is barely significant. 
+
+Keeping parsimony principle in mind, the order of AR terms can be 0,1,2 or 3. 
+
+```{r}
+# Find the ACF of diff(diff(BJsales)) in the code block below. Which lags are significant?
+
+acf(diff(diff(BJsales)))
+```
+Lag  8 and Lag 11 are barely significant.
+
+
+If we ignore barely significant lags, the order of MA term can be 0 or 1. 
+
+Keeping parsimony principle in mind, the order of MA term can be 0 or 1. 
+
+
+
+```{r}
+
+# Now we try few different models and compare their AIC values.
+d=2
+for(p in 1:4){
+  for(q in 1:2){
+        if(p+d+q<=6){
+          model<-arima(x=BJsales, order = c((p-1),d,(q-1)))
+          pval<-Box.test(model$residuals, lag=log(length(model$residuals)))
+          sse<-sum(model$residuals^2)
+          cat(p-1,d,q-1, 'AIC=', model$aic, ' SSE=',sse,' p-VALUE=', pval$p.value,'\n')
+        }
+      }
+}
+```
+ARIMA(0,2,1) has the smallest AIC value
+
+
+
+```{r}
+
+d=2
+for(p in 1:4){
+  for(q in 1:2){
+        if(p+d+q<=8){
+          model<-arima(x=BJsales, order = c((p-1),d,(q-1)))
+          pval<-Box.test(model$residuals, lag=log(length(model$residuals)))
+          sse<-sum(model$residuals^2)
+          cat(p-1,d,q-1, 'AIC=', model$aic, ' SSE=',sse,' p-VALUE=', pval$p.value,'\n')
+        }
+      }
+}
+```
+
+ARIMA(3,2,1) has the smallest SSE (sum of squared errors) value
+
+
+```{r}
+# We fit ARIMA(0,2,1), and look at the time plot, ACF and PACF of the residuals
+
+# Is there compelling evidence against the whiteness of the residuals?
+model<-arima(BJsales, order=c(0,2,1))
+
+par(mfrow=c(2,2))
+
+plot(model$residuals)
+acf(model$residuals)
+pacf(model$residuals)
+qqnorm(model$residuals)
+```
+- Is there compelling evidence against the whiteness of the residuals?
+
+No, since QQ-plot seems linear.
+
+No, since ACF nad PACF has no significant lags. 
+
+
+
+
+
+
+
+
+
+
+
+
+# Seasonal ARIMA models SARIMA(p,d,q, P, D, Q)s
+
+Now, but sometimes it is possible that our data might contain some seasonality, so the way to think about this is the following. Let's say we are looking at the sales of refrigerators and if you look at the sales in August of this year and then August of the last year, there might be some relationship between those two months. So there might be some seasonality going on and, in that case, the observations might repeat itself after every, let's say, s observations. In this case, 12 observations. So, for a time series of the monthly observation, X_t might depend on annual lags. For example, X_t might depend on X_{t-12}, which is last August; X_{t-24}, which was August two years ago; and so forth. In that case, we say that we have seasonality and the span of the seasonality or the period is s=12. 
+
+Now it is also possible that our data comes as quarterly earnings, for example. We have looked at such data. We're going to revisit Johnson and Johnson which was about quarterly earnings of a company. In that case, the span of the seasonality is actually just four. 
+
+
+Now, just like in the mixed ARMA process, we want our process, seasonal pure seasonal ARMA process or pure SARMA process, to be stationary and invertible. And for that reason, just like before, we're going to require that these polynomials have these complex roots and all of those complex roots are outside of a unit circle. 
+
+
+
+```{r}
+x=NULL
+z=NULL
+n=10000
+
+z=rnorm(n)
+x[1:13]=1
+
+for(i in 14:n){
+  x[i]<-z[i]+0.7*z[i-1]+0.6*z[i-12]+0.42*z[i-13]
+}
+
+
+plot.ts(x[12:120], main='The first 10 months of simulation SARIMA(0,0,1,0,0)_12', ylab='') 
+
+acf(x, main='SARIMA(0,0,1,0,0,1)_12 Simulation')
+```
+So let's start looking at the Johnson and Johnson data set again, this is the quarterly earnings for Johnson & Johnson shares, from 1960 until 1980. 
+
+```{r}
+plot(ts(jj))
+acf(ts(jj))
+pacf(ts(jj))
+```
+
+As before we looked at the time plot. As you can see from the time plot there is definitely a trend going up and as trend goes up the variance is changing. We have a higher variance here, lower variance here. That tells me I have what is called heteroschocasticity, as variance is increasing in this case, changing. We also have a seasonality, by the nature of the data. It's a quarterly earnings, and every quarter we might see some cyclic behavior.
+
+
+So what we do first, we'll have to transform, right? We talked about this before. The transformation is going to, basically, the logarithm. So we take the logarithm of the data to stabilize the variance. And to remove the trend, we take the difference. So difference of the logarithm of the dataset. This is also effectively called log-return in specifically financial time series.
+
+This is basically time series of the log returns, and we Help to see a stationary time series here.
+```{r}
+
+plot(ts(diff(log(jj))))
+acf(ts(diff(log(jj))))
+pacf(ts(diff(log(jj))))
+```
+And I look at ACF and PACF, as you can see we do have a strong auto correlation with lag four, lag eight and that is because of the seasonality. So what we want to do we would like to take the seasonal differencing in this case the capital D is going to be 1.
+
+This is basically the transformed and difference data, we take the difference with lag 4. This becomes seasonal differencing, and if we plot the data set, now our data set jj is differenced seasonally and non-seasonally.
+
+
+Actually, the lower item of the jj is differenced seasonally and non-seasonally. And we have some stationary, Time series here. So what we're going to do. We're going to look at, as we said, the Ljung-Box test. So Ljung-Box test is basically a Box.test in R. And we're going to take the lag as the logarithm of the data. This is the common adoption. And then we'll look at the p value and p value is very, very small. So if the P value is small then we reject the null hypothesis that there is no auto correlation between previous lags so there is some auto correlation between previous lags and we're going to find them using ACF and PACF. So let's look at ACF.
+
+```{r}
+
+plot(ts(diff(diff(log(jj)),4)))
+acf(ts(diff(diff(log(jj)),4)))
+pacf(ts(diff(diff(log(jj)),4)))
+
+```
+This is the ACF of the resulted data and this is the PACF of the resulted data. ACF if I look at the closer spikes here, I have a spike at Lag 1 and then it dies off, so this suggest MA1 models. So the order of moving average terms would be one, but if I look at lags, the seasonal lags, which is four. In this case, it's period one, but the lag is four. It is almost significant. Not really significant because it's below. It does not cross this dashed line. But it's almost significant, so we're going to assume that. So we might have some seasonal correlation, and so this will tell us that maybe we have Order 1, seasonal moving average term.
+
+
+If I look at PACF, I see that PACF, there's a significant lag at 1, again, then this dies off. This will tell me, suggest me that maybe order of auto-regressive term is one, and I see the other significant other correlation at lag four, that it will tell me maybe the order of the seasonal auto-regressive term is one. And then the other correlation dies off. 
+
+Okay, so ACF told us that q is either 1 or maybe it's 0, we get to look at both of them, and capital Q is 0, 1. Partial auto-correlation told us that p is maybe 0 and 1, and capital P is 0 and 1. So we'll look at this SARIMA model's p, 1, q, capital P, 1, Q, 4. 4 is my span of the seasonality. And these are the models for logarithm of the data, and immediately just determine that PQ, capital P capital Q, is going to be either zero or one. We're going to use ARIMA routine from R, basically, we have the order. 
+
+```{r}
+library(astsa)
+
+d=1
+DD=1
+
+per=4
+
+for(p in 1:2){
+  for(q in 1:2){
+    for(i in 1:2){
+      for(j in 1:2){
+        if(p+d+q+i+DD+j<=10){
+          model<-arima(x=log(jj), order = c((p-1),d,(q-1)), seasonal = list(order=c((i-1),DD,(j-1)), period=per))
+          pval<-Box.test(model$residuals, lag=log(length(model$residuals)))
+          sse<-sum(model$residuals^2)
+          cat(p-1,d,q-1,i-1,DD,j-1,per, 'AIC=', model$aic, ' SSE=',sse,' p-VALUE=', pval$p.value,'\n')
+        }
+      }
+    }
+  }
+}
+
+```
+we carry out this for all these possible values of p,d, p, q, P, Q and we basically print them. So these first six numbers are my orders p, d, q, P, D, Q. This is s which is 4 for all of them. 
+
+Then we look at AIC values. This is Akaike Information Criterion. We also looked at the sum of the squares errors, this is SSE. And we look at the p-value from the Ljung-Box test for the residuals. So we do not want auto correlations left in the residuals. So if you want high p-VALUE and we want smallest AIC and smallest SSE. Our principle is going to be choosing the smallest AIC. And I highlighted here the AIC is -150,9134, even though the smallest SSE in this In this output is here, which corresponds to different model. But we're ging to go with the smallest AIC, because of negative, this is the smallest AIC. So the model that we'll agree on is going to basically 0, 1, 1, 1, 1, 0, 4. 
+
+And you can see from the p-value, p-value is high, so we cannot reject the null hypothesis, there is no auto-correlation in the residuals in this case.
+
+
+```{r}
+
+sarima(log(jj), 0,1,1,1,1,0,4)
+```
+
+
+So our model is SARIMA ( 0,1,1,1,1 0)4. Remember Xt is going to be model as our earnings, but what we found this model is for Yt. So we transformed Xt, and we have logarithm of Xt called Yt, and we fit the SARIMA model using SARIMA routine or ARIMA routine, the routine that we discussed, and we obtain the following result here. These are ma1 because if there's ma1 here this is the coefficient for ma1. This is seasonal autoregressive order, this is corresponding to this one. This is our coefficient. This is standard errors and the p values are so small, so both of these coefficients are very significant.
+
+
+
+
+-----
+
+
+*The principle of parsimony*, often referred to as Occam's Razor, is a problem-solving principle that states that among competing hypotheses, the one with the fewest assumptions should be selected. In other words, the simplest explanation is usually the best one. This principle is used across various disciplines, including science, philosophy, and theology, to guide decision-making and theoretical development. 
+
+*Logic to choose*
+As we go through, 
+
+- we're also going to use Ljung-Box test to check if there is an autocorrelation between the previous lags. We're going to use ACF as one of our tools. 
+
+And *in the ACF*, 
+- if there is closers spikes, then that will suggest MA order for us. 
+- If there is spikes around seasonal lags that will give us SMA order, in other words, seasonal moving average order. 
+
+We're going to look at *PACF*, partial autocorrelation function. 
+
+- Closer spikes will suggest autoregressive order and 
+- the spikes around the seasonal lags will suggest seasonal autoregressive orders.
+
+
+
+-----
+
+
+#### SARIMA code for Milk production
+
+```{r}
+
+
+milk<-read.csv('monthly-milk-production-pounds.csv')
+#head(milk)
+Milk<-milk$Monthly.milk.production..pounds.per.cow.
+
+plot(ts(Milk))
+acf(ts(Milk))
+pacf(ts(Milk))
+```
+
+If we plot the data, actually we can see that there is definitely a trend going up and there's definitely a periodicity seasonality in the data. If we zoom into the first two years, let's say, we can definitely see that there is seasonality in our data, and the span of the season is twelve months. If I look at a ACF and PACF, ACF already suggests that is some cyclic behavior going on, so we will have to do some differencing. So what we do, we look at the non-seasonal differencing because we have a trend, and we have a seasonal differencing. So we don't need to transform the data, but we still have to do the differencing. 
+
+```{r}
+plot(ts(diff(diff(Milk)),12))
+```
+Now, this data must be a stationary data. Stationary data means there shouldn't be any change in the trend or variance, but in this case, we see a little spike around here – there are two spikes. Assuming that those were outliers, we're going to assume that this is a stationary time series, and we're going to try to fit a SARIMA model. 
+
+```{r}
+acf(ts(diff(diff(Milk)),12))
+pacf(ts(diff(diff(Milk)),12))
+```
+So, as we can see that ACF has no spike in a closer lags but there is a spike on the seasonal lag, which means we do not expect any moving average term but we expect a seasonal moving average term, maybe seasonal order would be up to three because we have a significant spike at lag 12, at lag 24, and at lag 36. Now, if you look at PACF, again there is no autocorrelation in the beginning lags – in these lags here – which would suggest that we do not expect any autoregressive terms, but there are spikes on lag 12 and lag 24, and then that might suggest that maybe we might have to two, order up to two of the seasonal autoregressive terms. 
+
+So, ACF will tell us that q is zero, but the Q, the capital Q can be up to three. PACF tell us that p is zero, but capital P can be up to two. And we run our command, but 
+keeping in mind the parsimonious principle which means that some of the parameters will be have to be less than or equal to six.
+
+
+
+
+
+```{r}
+library(astsa)
+library(forecast)
+
+d=NULL
+DD=NULL
+d=1
+DD=1
+
+per=12
+for(p in 1:1){
+  for(q in 1:1){
+    for(i in 1:3){
+      for(j in 1:4){
+        if(p+d+q+i+DD+j<=10){
+          model<-arima(x=Milk, order = c((p-1),d,(q-1)), seasonal = list(order=c((i-1),DD,(j-1)), period=per))
+          pval<-Box.test(model$residuals, lag=log(length(model$residuals)))
+          sse<-sum(model$residuals^2)
+          cat(p-1,d,q-1,i-1,DD,j-1,per, 'AIC=', model$aic, ' SSE=',sse,' p-VALUE=', pval$p.value,'\n')
+        }
+      }
+    }
+  }
+}
+```
+As you can see, even the last model, if you add this parameters, you will get exactly six. And we are trying to find the smallest AIC value – smallest AIC value is 923.3288. Smallest SSE value is 4618.498. But, if you're going to choose smallest AIC, and we can actually see that there is no significant autocorrelation left in the residuals, so our model is going to be SARIMA zero, one, zero, zero, one, and one with the span of seasonality 12.
+
+
+```{r}
+library(astsa)
+sarima(Milk, 0,1,0,0,1,1,12)
+```
+And if we fit this using SARIMA or ARIMA command or routine in R, we obtain that our coefficient for seasonal moving average term, which is right here, and then p-value is so small that this is very, very significant. 
+ 
+If you look at the residuals, we see that this is almost white except maybe one spike here, where we ignored, then thought that maybe this is an outlier, and there is no significant autocorrelation. There is systematic departure from normality, but I don't see any, we don't see any small p-value which will tell us, which tells us that there is no significant autocorrelation left in the residual. So we can assume that actually residuals are, at this point, is a white noise.
+
+
+```{r}
+model<- arima(x=Milk, order = c(0,1,0), seasonal = list(order=c(0,1,1), period=12))
+plot(forecast(model))
+```
+
+
+
+
+```{r}
+forecast(model)
+```
+
+
+
+
+
+
+#### SARIMA for Sales at a souvenir shop
+
+```{r}
+
+
+SUV<-read.csv('monthly-sales-of-product-a-for-a.csv')
+head(SUV)
+suv<-ts(SUV$Sales)
+plot(suv)
+
+
+```
+And if you look at the time plot of the monthly sales, we see the following. We see that some kind of seasonality going on, right? Is that every year there's this high - every year there's this high - high value. And every year it seems like the variations kind of increases. So there's a change in variation, there is seasonality. In fact, if you - if you carefully look at this, we can almost see a non-seasonal trend as well. All values are almost increasing.
+
+```{r}
+acf(suv)
+pacf(suv)
+```
+So we can look at our ACF and PACF. ACF will already tell us that if there is a seasonality or not. We can see autocorrelation at lag 12, lag 24, 36 and so forth. Seasonality is definitely existent in this data. Since there is already a trend and different variation - though we will have to do seasonal differencing, non-seasonal differencing - 
+
+but even before all of these, *since the variation is increasing*, let's do a transformation first to stabilize the variance. 
+
+
+So we're going to take the log transform - that's what we usually do, we take the log transform - and once we have the log transform, we will need non-seasonal and seasonal differencing. So d is going to be 1, D is going to be 1 and of course, the span of the seasonality is 12 months, so this is going to be 12. 
+
+```{r}
+library(astsa)
+library(forecast)
+
+
+
+
+plot(suv, main='Monthly sales for a souvenir shop', ylab='', col='blue', lwd=3)
+plot(log(suv), main='Log-transorm of sales', ylab='', col='red', lwd=3)
+plot(diff(log(suv)), main='Differenced Log-transorm of sales', ylab='', col='brown', lwd=3)
+plot(diff(diff(log(suv)),12), main='Log-transorm without trend and seasonaliy', ylab='', col='green', lwd=3)
+```
+First, we take non-seasonal differencing, so that would get rid of that trend. As you can see, there is no trend anymore, but there is seasonal trend. The seasonality still is there.
+
+
+Once we take a seasonal differencing and then we obtain this green plot, which we will assume that it is now a stationary dataset. Now one can say that actually the variance at the beginning of this time series is definitely different from variance at the end, but at this point, we will assume that this is a stationary time series
+
+```{r}
+data<-diff(diff((log(suv)),12))
+acf2(data,50)
+```
+If I look at ACF and PACF of our transformed and non-seasonal and seasonal difference dataset, we see the following; we have one significant autocorrelation at lag 1 that will tell me that the q - the order of the moving average term is either 0 or 1. Probably 1, but we'll see. We don't see any significant autocorrelation in other lags that's closer to 0. So Q is for us going to be either between 0 and 1. If I look at seasonal lags, this is almost significant, but not that significant. But I see a significant lag at 36, there's significant lag at 22. So we'll just try few different - this is actually 34. But we're going to try a few different values for seasonal moving average term. 
+
+
+If I look at PACF, which will tell me usually the order of autoregressive terms and/or seasonal autoregressive terms, we have a significant lag at 1; so our capital P can be 0 or 1. But if I look at seasonal lags 12, 24 - there is no significant autocorrelations. 
+
+
+So we are going to assume maybe that capital P is either 0 or 1 and we'll look at those values. So order specification; you have q values, capital Q, p and capital P values. So we look at few different values of P-Q, of course. Remember the parsimony principle, that these values should add up to six or less. 
+
+```{r}
+d=1
+DD=1
+per=12
+for(p in 1:2){
+  for(q in 1:2){
+    for(i in 1:2){
+      for(j in 1:4){
+        if(p+d+q+i+DD+j<=10){
+          model<-arima(x=log(suv), order = c((p-1),d,(q-1)), seasonal = list(order=c((i-1),DD,(j-1)), period=per))
+          pval<-Box.test(model$residuals, lag=log(length(model$residuals)))
+          sse<-sum(model$residuals^2)
+          cat(p-1,d,q-1,i-1,DD,j-1,per, 'AIC=', model$aic, ' SSE=',sse,' p-VALUE=', pval$p.value,'\n')
+        }
+      }
+    }
+  }
+}
+```
+
+If I look at AIC values, the minimum in this slide - there's one more slide that we're going to look at - in this slide, the minimum value is actually negative 34.54 as this model. But if you look at the next slide, then we see that there's another minimum value and this is negative 34.98, which is a minimum of all of these values. It's the model we are going to adapt, we're going to fit to our time series. This is going to be 1 1 0 0 1 1 12. 
+
+```{r}
+sarima(suv, 1,1,0,0,1,1,12)
+```
+
+So if I look at the residuals from the SARIMA model (1,1,0,0,1,1)12, this is my Standardized Residuals. It looks white. There is no significant autocorrelation, sample autocorrelation. If I look at Q-Q plot, the middle part is linear, but then there is a systematic departure at the tails. But if I look at the p values from Ljung.box statistics, it tells me that there is non-significant autocorrelation left in the residuals. 
+
+
+```{r}
+sarima(suv, 0,1,3,0,1,1,12)
+```
+So one might try different values of q - little q - up to three. If you do that, we obtain another model, which is SARIMA (0,1,3,0,1,1). In this case, we do not have autoregressive terms, but instead we have three moving average terms. In fact, AIC value and SSE values of this new model is actually smaller than our previous model. So if you think that those two lines are actually significant, you might want to fit SARIMA (0,1,3,0,1,1) instead of our model that we fit. And if you look at the P value from Ljung.box statistics, it's actually bigger. And if you look at the residual analysis for this new model, you see that P values are very high. No significant sample autocorrelation function. The residual looks white and our residuals are almost normal, but there's a systematic departure on the left tail.
+
+```{r}
+model<- arima(x=log(suv), order = c(1,1,0), seasonal = list(order=c(0,1,1), period=12))
+
+plot(forecast(model))
+```
+
+
+
+
+```{r}
+forecast(model)
+```
+
+
+
+
+```{r}
+a<-sarima.for(log(suv),12,1,1,0,0,1,1,12)
+
+plot.ts(c(suv,exp(a$pred)), main='Monthly sales + Forecast', ylab='', col='blue', lwd=3)
+```
+
+
+
+### USAccDeaths
+
+```{r}
+plot(ts(USAccDeaths))
+```
+
+Time series is not stationary since there is a seasonal trend.
+
+It is a monthly time series with a span of seasonality 12. 
+
+
+We first get rid of the seasonal trend by differencing the values at the same month of each year. 
+```{r}
+plot(ts(diff(USAccDeaths,12)))
+
+library(rmarkdown)
+
+# Specify the input and output file paths
+input_file <- "Time Series.Rmd"
+output_file <- "Time Series.ipynb"
+
+# Convert the Rmd file to ipynb
+rmarkdown::render(input = input_file, output_format = "all", output_file = output_file)
+
+```
+
+There is a clear upward trend. 
+
+We de-trend the seasonally differenced time series by taking non-seasonal differencing, diff(), and call the obtained time series 'acData'. Obtain ACF and PACF
+```{r}
+
+acData = ts(diff(diff(USAccDeaths,12)))
+
+acf(acData)
+pacf(acData)
+```
+
+Significant adjacent lags in PACF suggest the order of AR terms, p≤2. 
+
+The significant partial autocorrelation coefficient at lag 12 suggests the order of seasonal AR term, P≤1.
+
+Significant adjacent lags in ACF suggest the order of MA terms, q≤1.
+
+The significant autocorrelation coefficient at lag 12 suggests the order of seasonal MA term, Q≤1.
+
+
+
+
+```{r}
+sarima(USAccDeaths, 0,1,1,0,1,1,12)
+```
+
+p-values from Ljung-Box test are high meaning that there is no significant autocorrelation left in the residuals. 
+
+ACF shows no significant autocorrelation in the residuals. 
+
+There is a systematic departure from linearity in QQ-plot which implies that residuals have a heavier tail compared to the Gaussian distribution. 
+
+
+
+
+```{r}
+library(astsa)
+model<-sarima(USAccDeaths, 0,1,1,0,1,1,12)
+model$ttable
+```
+
+p-values are 0.0008 and 0.0028 for MA and seasonal MA coefficients, respectively. The fact that they are both less than any reasonable significant level, both coefficients (terms) are significant.
+
+
+```{r}
+sarima.for(USAccDeaths, n.ahead=6, 0,1,1,0,1,1,12)
+```
+
+
+
+
+# FORECASTING
+
+
+At this point, we can look at a time series and, using software or by developing our own code, estimate the order of the process and estimate the coefficients describing autoregressive or moving average components. We also know how to judge the quality of a model.
+To push further, we will explore ways to use our past data in order to say something intelligent about what values we are likely to observe in the future.
+
+
+
+```{r}
+rm(list=ls(all=TRUE))
+rain.data <- scan("http://robjhyndman.com/tsdldata/hurst/precip1.dat",skip=1)
+rain.ts <- ts(rain.data, start=c(1813))
+
+
+```
+
+
+```{r}
+
+par( mfrow=c(1,2) )
+
+hist(rain.data, main="Annual London Rainfall 1813-1912",
+xlab="rainfall in inches")
+qqnorm(rain.data,main="Normal Plot of London Rainfall")
+qqline(rain.data)
+```
+
+
+```{r}
+par( mfrow=c(1,2) )
+plot.ts(rain.ts, main="Annual London Rainfall 1813-1912",
+xlab="year", ylab="rainfall in inches")
+acf(rain.ts, main="ACF: London Rainfall")
+```
+
+
+It’s hard to look at these plots and think of an obvious model. The data themselves exhibit some skew and aren’t terribly far from normally distributed. The autocorrelations seem pretty weak. Even auto.arima() kind of gives up on us.
+
+```{r}
+library(forecast)
+auto.arima(rain.ts)
+```
+
+
+
+
+```{r}
+alpha=.2 #increase alpha for more rapid decay
+forecast.values = NULL #establish array to store forecast values
+n = length(rain.data)
+#naive first forecast
+forecast.values [1] = rain.data[1]
+#loop to create all forecast values
+for( i in 1:n ) {
+forecast.values [i+1] = alpha*rain.data[i] + (1-alpha)* forecast.values [i]
+}
+paste("forecast for time",n+1," = ", forecast.values [n+1])
+
+```
+
+
+
+
+```{r}
+SSE=NULL
+n = length(rain.data)
+alpha.values = seq( .001, .999, by=0.001)
+number.alphas = length(alpha.values)
+for( k in 1:number.alphas ) {
+ forecast.values=NULL
+ alpha = alpha.values[k]
+ forecast.values[1] = rain.data[1]
+ for( i in 1:n ) {
+ forecast.values[i+1] = alpha*rain.data[i] + (1-alpha)*forecast.values[i]
+ }
+ SSE[k] = sum( (rain.data - forecast.values[1:n])^2 )
+}
+plot(SSE~alpha.values, main="Optimal alpha value Minimizes SSE")
+```
+
+
+```{r}
+index.of.smallest.SSE = which.min(SSE) #returns position 24
+alpha.values[which.min(SSE)] #returns 0.024
+```
+
+```{r}
+HoltWinters(rain.ts, beta=FALSE, gamma=FALSE)
+
+
+```
+
+
+#  Forecasting – Holt-Winters for Trend
+
+
+
+
+While SES this is not a bad approach, it is certainly limited and doesn’t include some other factors which may be driving your system. We would like to build on this approach but also include seasonal and trend effects. The Holt-Winters method (also called, obviously enough, exponential smoothing with trend and seasonality, or even triple exponential smoothing) takes us in this
+direction.
+
+
+In general, we will need to keep track of
+ Levels, with parameter “alpha”, 𝛼
+ Trend, with parameter “beta”, 𝛽
+ Seasonal Component , with parameter “gamma”, 𝛾
+
+This method is widely known and has the virtue of being a method used by many companies for short term forecasts. 
+
+...the method is popular because it is simple, has low data-storage requirements, and is easily automated. It also has the advantage of being able to adapt to changes in trends and seasonal patterns in sales when they occur. This means that slowdowns or speed-ups in demand, or changing consumer behavior at Christmas or in the summer, can all be accommodated. It achieves this by updating its estimates of these patterns as soon as each new sales figure arrives...
+
+
+T
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
